@@ -1,0 +1,159 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Cliente,
+  Ingresso,
+  getClientiFirebase,
+  getIngressiFirebase,
+} from "../../lib/storage";
+
+export default function IngressiPage() {
+  const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [ingressi, setIngressi] = useState<Ingresso[]>([]);
+  const [ricerca, setRicerca] = useState("");
+
+  const meseCorrente = new Date().toISOString().slice(0, 7);
+  const [mese, setMese] = useState(meseCorrente);
+
+  useEffect(() => {
+    async function caricaDati() {
+      const clientiFirebase = await getClientiFirebase();
+      const ingressiFirebase = await getIngressiFirebase();
+
+      setClienti(clientiFirebase as Cliente[]);
+      setIngressi(ingressiFirebase as Ingresso[]);
+    }
+
+    caricaDati();
+  }, []);
+
+  const ingressiDelMese = ingressi.filter((ingresso) =>
+    ingresso.data.startsWith(mese)
+  );
+
+  const reportClienti = clienti
+    .filter((cliente) =>
+      `${cliente.nome} ${cliente.cognome} ${cliente.telefono}`
+        .toLowerCase()
+        .includes(ricerca.toLowerCase())
+    )
+    .map((cliente) => {
+      const ingressiCliente = ingressiDelMese.filter(
+        (ingresso) => ingresso.clienteId === cliente.id
+      );
+
+      return {
+        cliente,
+        totale: ingressiCliente.length,
+        date: ingressiCliente.map((ingresso) =>
+          new Date(ingresso.data).toLocaleString("it-IT")
+        ),
+      };
+    })
+    .filter((riga) => riga.totale > 0)
+    .sort((a, b) => b.totale - a.totale);
+
+  return (
+    <main className="min-h-screen bg-gray-100 p-8">
+      <Link href="/" className="underline text-sm">
+        ← Torna alla dashboard
+      </Link>
+
+      <h1 className="text-4xl font-bold my-8">
+        Report Mensile Ingressi
+      </h1>
+
+      <div className="bg-white rounded-2xl p-6 shadow mb-6 max-w-xl">
+        <label className="block font-semibold mb-2">
+          Seleziona mese
+        </label>
+
+        <input
+          type="month"
+          value={mese}
+          onChange={(e) => setMese(e.target.value)}
+          className="border p-3 rounded-xl w-full"
+        />
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow mb-6 max-w-xl">
+        <label className="block font-semibold mb-2">
+          Cerca cliente
+        </label>
+
+        <input
+          type="text"
+          placeholder="Nome o telefono..."
+          value={ricerca}
+          onChange={(e) => setRicerca(e.target.value)}
+          className="border p-3 rounded-xl w-full"
+        />
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow mb-6">
+        <h2 className="text-xl font-semibold">
+          Totale ingressi nel mese
+        </h2>
+
+        <p className="text-3xl mt-2">
+          {ingressiDelMese.length}
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {reportClienti.length === 0 ? (
+          <div className="bg-white rounded-xl p-4 shadow">
+            Nessun ingresso registrato per questo mese.
+          </div>
+        ) : (
+          reportClienti.map((riga) => (
+            <div
+              key={riga.cliente.id}
+              className="bg-white rounded-2xl p-6 shadow"
+            >
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    {riga.cliente.nome} {riga.cliente.cognome}
+                  </h2>
+
+                  <p className="text-gray-600">
+                    👥 {riga.cliente.gruppo}
+                  </p>
+
+                  <p className="text-gray-600">
+                    📞 {riga.cliente.telefono}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">
+                    Ingressi mese
+                  </p>
+
+                  <p className="text-4xl font-bold">
+                    {riga.totale}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 border-t pt-4">
+                <p className="font-semibold mb-2">
+                  Dettaglio ingressi:
+                </p>
+
+                <ul className="list-disc pl-5 space-y-1">
+                  {riga.date.map((data, index) => (
+                    <li key={index}>{data}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </main>
+  );
+}
