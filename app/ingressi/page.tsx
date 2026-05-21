@@ -7,6 +7,10 @@ import {
   Ingresso,
   getClientiFirebase,
   getIngressiFirebase,
+   salvaClienteSingoloFirebase,
+  eliminaClienteFirebase,
+  salvaIngressoSingoloFirebase,
+  saveClienti,
 } from "../../lib/storage";
 
 export default function IngressiPage() {
@@ -43,7 +47,37 @@ export default function IngressiPage() {
       const ingressiCliente = ingressiDelMese.filter(
         (ingresso) => ingresso.clienteId === cliente.id
       );
+async function registraIngressoManuale(cliente: Cliente) {
+  if ((cliente.ingressiDisponibili || 0) <= 0) {
+    alert("Ingressi esauriti");
+    return;
+  }
 
+  const nuovoIngresso: Ingresso = {
+    id: "ingresso_" + Date.now(),
+    clienteId: cliente.id,
+    data: new Date().toISOString(),
+    esito: "OK MANUALE",
+  };
+
+  await salvaIngressoSingoloFirebase(nuovoIngresso);
+
+  const clienteAggiornato: Cliente = {
+    ...cliente,
+    ingressiDisponibili: (cliente.ingressiDisponibili || 0) - 1,
+  };
+
+  await salvaClienteSingoloFirebase(clienteAggiornato);
+
+  const aggiornati = clienti.map((c) =>
+    c.id === cliente.id ? clienteAggiornato : c
+  );
+
+  setClienti(aggiornati);
+  saveClienti(aggiornati);
+
+  alert("Ingresso manuale registrato");
+}
       return {
         cliente,
         totale: ingressiCliente.length,

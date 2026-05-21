@@ -6,6 +6,7 @@ import {
   getDocs,
   setDoc,
   doc,
+  deleteDoc
 } from "firebase/firestore";
 
 export type Cliente = {
@@ -18,8 +19,15 @@ export type Cliente = {
   scadenzaAbbonamento: string;
   scadenzaCertificato: string;
   attivo: boolean;
+  ingressiDisponibili: number;
+   tipoAbbonamento: string;
 };
-
+export type Ingresso = {
+  id: string;
+  clienteId: string;
+  data: string;
+  esito: string;
+};
 export type Pagamento = {
   id: string;
   clienteId: string;
@@ -28,12 +36,7 @@ export type Pagamento = {
   data: string;
 };
 
-export type Ingresso = {
-  id: string;
-  clienteId: string;
-  data: string;
-  esito: string;
-};
+
 
 export function getClienti(): Cliente[] {
   if (typeof window === "undefined") return [];
@@ -172,4 +175,13 @@ export async function getIngressiFirebase() {
     id: documento.id,
     ...documento.data(),
   }));
+}export async function eliminaClienteFirebase(clienteId: string) {
+  await deleteDoc(doc(db, "clienti", clienteId));
+}
+export async function eliminaPagamentoFirebase(
+  pagamentoId: string
+) {
+  await deleteDoc(
+    doc(db, "pagamenti", pagamentoId)
+  );
 }

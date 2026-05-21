@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+const playSound = (tipo: "ok" | "errore" | "gia") => {
+  const audio = new Audio(`/sounds/${tipo}.mp3`);
+
+  audio.play().catch(() => {});
+};
 import Link from "next/link";
 import { Html5QrcodeScanner } from "html5-qrcode";
 
@@ -11,6 +16,7 @@ import {
   getIngressiFirebase,
   saveIngressi,
   salvaIngressoSingoloFirebase,
+  salvaClienteSingoloFirebase,
 } from "../../lib/storage";
 
 export default function ScannerPage() {
@@ -25,6 +31,7 @@ export default function ScannerPage() {
 
   const [ultimoCliente, setUltimoCliente] =
     useState("-");
+    
 
   useEffect(() => {
     async function caricaDati() {
@@ -83,6 +90,7 @@ export default function ScannerPage() {
       setMessaggio(
         "GIÀ REGISTRATO OGGI"
       );
+      playSound("gia");
 
       return;
     }
@@ -122,12 +130,31 @@ export default function ScannerPage() {
     await salvaIngressoSingoloFirebase(
       nuovoIngresso
     );
+    const clienteAggiornato: Cliente = {
+  ...cliente,
+  ingressiDisponibili:
+    (cliente.ingressiDisponibili || 0) - 1,
+};
+
+await salvaClienteSingoloFirebase(clienteAggiornato);
+
+setClienti(
+  clienti.map((c) =>
+    c.id === cliente.id ? clienteAggiornato : c
+  )
+);
 
     setUltimoCliente(
       `${cliente.nome} ${cliente.cognome}`
     );
 
     setMessaggio(esito);
+    if (esito === "OK") {
+  playSound("ok");
+} else {
+  playSound("errore");
+}
+    
   }
 
   useEffect(() => {

@@ -2,29 +2,122 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+
 import {
   Cliente,
   Pagamento,
-  getClienti,
-  getPagamenti,
+  getClientiFirebase,
+  getPagamentiFirebase,
   savePagamenti,
-  aggiornaScadenzaAbbonamento,
+  salvaPagamentoSingoloFirebase,
+  salvaClienteSingoloFirebase,
+  eliminaPagamentoFirebase,
 } from "../../lib/storage";
+
+const pacchetti = {
+  Mensile: { importo: 65, ingressi: 8 },
+
+  Trimestrale: {
+    importo: 195,
+    ingressi: 24,
+  },
+
+  Semestrale: {
+    importo: 330,
+    ingressi: 48,
+  },
+
+  Annuale: {
+    importo: 540,
+    ingressi: 999,
+  },
+
+  Personalizzato: {
+    importo: 0,
+    ingressi: 0,
+  },
+};
+
+type VocePagamento = keyof typeof pacchetti;
 
 export default function PagamentiPage() {
   const [clienti, setClienti] = useState<Cliente[]>([]);
   const [pagamenti, setPagamenti] = useState<Pagamento[]>([]);
   const [clienteId, setClienteId] = useState("");
-  const [voce, setVoce] = useState("Mensile");
+  const [voce, setVoce] = useState<VocePagamento>("Mensile");
   const [importo, setImporto] = useState("65");
+  const [ingressiDaAggiungere, setIngressiDaAggiungere] = useState("8");
   const [metodo, setMetodo] = useState("contanti");
 
   useEffect(() => {
-    setClienti(getClienti());
-    setPagamenti(getPagamenti());
+    async function caricaDati() {
+      const clientiFirebase = await getClientiFirebase();
+      const pagamentiFirebase = await getPagamentiFirebase();
+
+      setClienti(clientiFirebase as Cliente[]);
+      setPagamenti(pagamentiFirebase as Pagamento[]);
+      savePagamenti(pagamentiFirebase as Pagamento[]);
+    }
+
+    caricaDati();
   }, []);
 
-  function registraPagamento(e: React.FormEvent) {
+  function formattaDataLocale(data: Date) {
+    return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(data.getDate()).padStart(2, "0")}`;
+  }
+
+  function ultimoGiornoDelMese(data: Date) {
+    return new Date(
+      data.getFullYear(),
+      data.getMonth() + 1,
+      0
+    );
+  }
+
+  function calcolaScadenza(
+    voce: VocePagamento,
+    scadenzaAttuale?: string
+  ) {
+    const oggi = new Date();
+
+    const base =
+      scadenzaAttuale && new Date(scadenzaAttuale) > oggi
+        ? new Date(scadenzaAttuale)
+        : oggi;
+
+    if (voce === "Mensile") {
+      base.setMonth(base.getMonth() + 1);
+      return ultimoGiornoDelMese(base);
+    }
+
+    if (voce === "Trimestrale") {
+      base.setMonth(base.getMonth() + 3);
+      return ultimoGiornoDelMese(base);
+    }
+
+    if (voce === "Semestrale") {
+      base.setMonth(base.getMonth() + 6);
+      return ultimoGiornoDelMese(base);
+    }
+
+    const anno =
+      oggi.getMonth() <= 6
+        ? oggi.getFullYear()
+        : oggi.getFullYear() + 1;
+
+    return new Date(anno, 6, 31);
+  }
+
+ function cambiaVoce(nuovaVoce: VocePagamento) {
+  setVoce(nuovaVoce);
+  setImporto(String(pacchetti[nuovaVoce].importo));
+  setIngressiDaAggiungere(String(pacchetti[nuovaVoce].ingressi));
+}
+
+  async function registraPagamento(e: React.FormEvent) {
     e.preventDefault();
 
     if (!clienteId || !importo) {
@@ -37,35 +130,84 @@ export default function PagamentiPage() {
       clienteId,
       importo: Number(importo),
       metodo: `${metodo} - ${voce}`,
-      data: new Date().toISOString().slice(0, 10),
+      data: formattaDataLocale(new Date()),
     };
 
     const nuoviPagamenti = [...pagamenti, nuovoPagamento];
-    savePagamenti(nuoviPagamenti);
-    setPagamenti(nuoviPagamenti);
 
-    if (voce === "Mensile" && Number(importo) === 65) {
-      const oggi = new Date();
-      oggi.setMonth(oggi.getMonth() + 1);
-      aggiornaScadenzaAbbonamento(clienteId, oggi.toISOString().slice(0, 10));
-      alert("Pagamento Mensile registrato. Abbonamento rinnovato di 1 mese.");
-    } else {
-      alert("Pagamento registrato.");
+    setPagamenti(nuoviPagamenti);
+    savePagamenti(nuoviPagamenti);
+
+    await salvaPagamentoSingoloFirebase(nuovoPagamento);
+
+    const clienteDaAggiornare = clienti.find(
+      (cliente) => cliente.id === clienteId
+    );
+
+    if (clienteDaAggiornare) {
+      const nuovaScadenza = calcolaScadenza(
+        voce,
+        clienteDaAggiornare.scadenzaAbbonamento
+      );
+
+      const ingressiAttuali =
+        clienteDaAggiornare.ingressiDisponibili || 0;
+
+      const aggiornato: Cliente = {
+        ...clienteDaAggiornare,
+        scadenzaAbbonamento: formattaDataLocale(nuovaScadenza),
+        attivo: true,
+        tipoAbbonamento: voce,
+        ingressiDisponibili:
+  ingressiAttuali + Number(ingressiDaAggiungere),
+      };
+
+      await salvaClienteSingoloFirebase(aggiornato);
+
+      setClienti(
+        clienti.map((cliente) =>
+          cliente.id === clienteId ? aggiornato : cliente
+        )
+      );
     }
 
-    setClienti(getClienti());
+    alert(`Pagamento ${voce} registrato. Abbonamento aggiornato.`);
+
     setClienteId("");
     setVoce("Mensile");
-    setImporto("65");
+  setIngressiDaAggiungere("8");
     setMetodo("contanti");
+  }
+
+  async function eliminaPagamento(pagamentoId: string) {
+    const conferma = confirm("Eliminare questo pagamento?");
+
+    if (!conferma) return;
+
+    await eliminaPagamentoFirebase(pagamentoId);
+
+    const aggiornati = pagamenti.filter(
+      (p) => p.id !== pagamentoId
+    );
+
+    setPagamenti(aggiornati);
+    savePagamenti(aggiornati);
+
+    alert("Pagamento eliminato");
   }
 
   function nomeCliente(id: string) {
     const cliente = clienti.find((c) => c.id === id);
-    return cliente ? `${cliente.nome} ${cliente.cognome}` : "Cliente non trovato";
+
+    return cliente
+      ? `${cliente.cognome} ${cliente.nome}`
+      : "Cliente non trovato";
   }
 
-  const totale = pagamenti.reduce((sum, p) => sum + p.importo, 0);
+  const totale = pagamenti.reduce(
+    (sum, p) => sum + p.importo,
+    0
+  );
 
   return (
     <main className="min-h-screen bg-gray-100 p-8">
@@ -73,31 +215,83 @@ export default function PagamentiPage() {
         ← Torna alla dashboard
       </Link>
 
-      <h1 className="text-4xl font-bold my-8">Pagamenti</h1>
+      <h1 className="text-4xl font-bold my-8">
+        Pagamenti
+      </h1>
 
-      <form onSubmit={registraPagamento} className="bg-white rounded-2xl p-6 shadow max-w-2xl space-y-4 mb-8">
-        <select className="w-full border p-3 rounded" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+      <form
+        onSubmit={registraPagamento}
+        className="bg-white rounded-2xl p-6 shadow max-w-2xl space-y-4 mb-8"
+      >
+        <select
+          className="w-full border p-3 rounded"
+          value={clienteId}
+          onChange={(e) => setClienteId(e.target.value)}
+        >
           <option value="">Seleziona cliente</option>
+
           {clienti.map((cliente, index) => (
-  <option
-    key={`${cliente.id}-${index}`}
-    value={cliente.id}
-  >
-              {cliente.nome} {cliente.cognome}
+            <option
+              key={`${cliente.id}-${index}`}
+              value={cliente.id}
+            >
+              {cliente.cognome} {cliente.nome}
             </option>
           ))}
         </select>
 
-        <select className="w-full border p-3 rounded" value={voce} onChange={(e) => {
-          setVoce(e.target.value);
-          if (e.target.value === "Mensile") setImporto("65");
-        }}>
-          <option value="Mensile">Mensile</option>
+        <select
+          className="w-full border p-3 rounded"
+          value={voce}
+          onChange={(e) =>
+            cambiaVoce(e.target.value as VocePagamento)
+          }
+        >
+          <option value="Mensile">
+            Mensile - 65€ / 8 ingressi
+          </option>
+          <option value="Trimestrale">
+            Trimestrale - 195€ / 24 ingressi
+          </option>
+          <option value="Semestrale">
+            Semestrale - 330€ / 48 ingressi
+          </option>
+          <option value="Annuale">
+            Annuale - 540€ / 999 ingressi
+          </option>
+          <option value="Personalizzato">
+  Personalizzato
+</option>
         </select>
 
-        <input className="w-full border p-3 rounded" placeholder="Importo es. 65" value={importo} onChange={(e) => setImporto(e.target.value)} />
+        {voce === "Personalizzato" && (
+  <>
+    <input
+      className="w-full border p-3 rounded"
+      placeholder="Importo"
+      value={importo}
+      onChange={(e) =>
+        setImporto(e.target.value)
+      }
+    />
 
-        <select className="w-full border p-3 rounded" value={metodo} onChange={(e) => setMetodo(e.target.value)}>
+    <input
+      className="w-full border p-3 rounded"
+      placeholder="Ingressi da aggiungere"
+      value={ingressiDaAggiungere}
+      onChange={(e) =>
+        setIngressiDaAggiungere(
+          e.target.value
+         )
+      }
+    />
+  </>
+)}
+        <select
+          className="w-full border p-3 rounded"
+          value={metodo}
+          onChange={(e) => setMetodo(e.target.value)}
+        >
           <option value="contanti">Contanti</option>
           <option value="pos">POS</option>
           <option value="bonifico">Bonifico</option>
@@ -110,16 +304,34 @@ export default function PagamentiPage() {
       </form>
 
       <div className="bg-white rounded-2xl p-6 shadow mb-6">
-        <h2 className="text-xl font-semibold">Totale registrato</h2>
+        <h2 className="text-xl font-semibold">
+          Totale registrato
+        </h2>
         <p className="text-3xl mt-2">€ {totale}</p>
       </div>
 
       <div className="space-y-3">
         {pagamenti.map((pagamento) => (
-          <div key={pagamento.id} className="bg-white rounded-xl p-4 shadow">
+          <div
+            key={pagamento.id}
+            className="bg-white rounded-xl p-4 shadow"
+          >
             <strong>{nomeCliente(pagamento.clienteId)}</strong>
-            <p>€ {pagamento.importo} — {pagamento.metodo}</p>
-            <p className="text-sm text-gray-500">{pagamento.data}</p>
+
+            <p>
+              € {pagamento.importo} — {pagamento.metodo}
+            </p>
+
+            <p className="text-sm text-gray-500">
+              {pagamento.data}
+            </p>
+
+            <button
+              onClick={() => eliminaPagamento(pagamento.id)}
+              className="bg-red-600 text-white px-4 py-2 rounded-xl mt-3"
+            >
+              Elimina
+            </button>
           </div>
         ))}
       </div>
