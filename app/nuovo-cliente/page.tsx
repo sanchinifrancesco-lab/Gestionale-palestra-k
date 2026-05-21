@@ -34,6 +34,8 @@ export default function NuovoCliente() {
       scadenzaAbbonamento,
       scadenzaCertificato,
       attivo: true,
+      ingressiDisponibili: 0,
+tipoAbbonamento: "",
     };
 
     saveClienti([...clienti, nuovoCliente]);
