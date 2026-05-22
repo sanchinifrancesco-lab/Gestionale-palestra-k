@@ -61,6 +61,7 @@ export default function Home() {
         <Menu href="/clienti" label="Clienti" />
         <Menu href="/nuovo-cliente" label="Nuovo Cliente" />
         <Menu href="/pagamenti" label="Pagamenti" />
+         <Menu href="/personal" label="Personal" />
         <Menu href="/scanner" label="Scanner QR" />
         <Menu href="/scadenze" label="Scadenze" />
         <Menu href="/ingressi" label="Report Ingressi" />

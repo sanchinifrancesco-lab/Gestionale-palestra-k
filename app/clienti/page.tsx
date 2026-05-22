@@ -95,6 +95,8 @@ setClienti(clientiSistemati);
         attivo: true,
         ingressiDisponibili:0,
         tipoAbbonamento:"",
+        lezioniPersonalDisponibili: 0,
+        tipoPersonal: "",
       };
       
     });
@@ -105,7 +107,7 @@ setClienti(clientiSistemati);
 
     setClienti([...clienti, ...nuoviClienti]);
     alert("Clienti importati");
-  }
+}
 async function registraIngressoManuale(cliente: Cliente
 ) {
   if (
@@ -258,6 +260,8 @@ async function registraIngressoManuale(cliente: Cliente
 {cliente.tipoAbbonamento}
 </p>
                       <p>👥 {cliente.gruppo}</p>
+                      <p> 🏋️ Personal: {cliente.tipoPersonal ? "Sì" : "No"}
+</p>
 
                       <p className={`font-semibold ${abbonamentoScaduto ? "text-red-600" : "text-green-600"}`}>
                         📅 Abbonamento: {cliente.scadenzaAbbonamento}

@@ -20,13 +20,23 @@ export type Cliente = {
   scadenzaCertificato: string;
   attivo: boolean;
   ingressiDisponibili: number;
-   tipoAbbonamento: string;
+  tipoAbbonamento: string;
+  lezioniPersonalDisponibili: number;
+  tipoPersonal: string;
 };
 export type Ingresso = {
   id: string;
   clienteId: string;
   data: string;
   esito: string;
+  
+};
+export type LezionePersonal = {
+  id: string;
+  clienteId: string;
+  data: string;
+  tipoLezione: string;
+  note: string;
 };
 export type Pagamento = {
   id: string;
@@ -183,5 +193,23 @@ export async function eliminaPagamentoFirebase(
 ) {
   await deleteDoc(
     doc(db, "pagamenti", pagamentoId)
+  );
+}
+export async function getLezioniPersonalFirebase() {
+  const querySnapshot = await getDocs(
+    collection(db, "lezioniPersonal")
+  );
+
+  return querySnapshot.docs.map((documento) => ({
+    id: documento.id,
+    ...documento.data(),
+  }));
+}
+export async function salvaLezionePersonalFirebase(
+  lezione: LezionePersonal
+) {
+  await setDoc(
+    doc(db, "lezioniPersonal", lezione.id),
+    lezione
   );
 }

@@ -18,6 +18,8 @@ export default function NuovoCliente() {
   const [gruppo, setGruppo] = useState("");
   const [scadenzaAbbonamento, setScadenzaAbbonamento] = useState("");
   const [scadenzaCertificato, setScadenzaCertificato] = useState("");
+  const [isPersonal, setIsPersonal] =
+  useState(false);
 
   function salvaCliente(e: React.FormEvent) {
     e.preventDefault();
@@ -30,12 +32,16 @@ export default function NuovoCliente() {
       cognome,
       telefono,
       email,
-      gruppo,
+      gruppo:gruppo.trim().toLowerCase(),
       scadenzaAbbonamento,
       scadenzaCertificato,
       attivo: true,
       ingressiDisponibili: 0,
-tipoAbbonamento: "",
+     tipoAbbonamento: "",
+     lezioniPersonalDisponibili: 0,
+     tipoPersonal: isPersonal
+  ? "attivo"
+  : "",
     };
 
     saveClienti([...clienti, nuovoCliente]);
@@ -92,6 +98,17 @@ tipoAbbonamento: "",
           value={gruppo}
           onChange={(e) => setGruppo(e.target.value)}
         />
+        <label className="flex items-center gap-2">
+  <input
+    type="checkbox"
+    checked={isPersonal}
+    onChange={(e) =>
+      setIsPersonal(e.target.checked)
+    }
+  />
+
+  Cliente Personal
+</label>
 
         <label className="block">
           Scadenza abbonamento
