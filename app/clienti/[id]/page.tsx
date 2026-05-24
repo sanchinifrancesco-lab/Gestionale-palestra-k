@@ -32,7 +32,7 @@ export default function SchedaCliente() {
       const trovato = clienti.find((c) => c.id === clienteId) || null;
 
       setCliente(trovato);
-      setNote(trovato?.noteCliente || "");
+      setNote(trovato?.note|| "");
 
       const tuttiPagamenti = (await getPagamentiFirebase()) as Pagamento[];
       setPagamenti(tuttiPagamenti.filter((p) => p.clienteId === clienteId));
@@ -81,7 +81,7 @@ export default function SchedaCliente() {
 
   const aggiornato: Cliente = {
     ...cliente,
-    noteCliente: note,
+    note: note,
   };
 
   await salvaClienteSingoloFirebase(aggiornato);
