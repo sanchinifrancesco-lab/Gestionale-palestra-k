@@ -25,6 +25,7 @@ export type Cliente = {
   tipoPersonal: string;
   recuperiDisponibili: number;
  scadenzaRecuperi: string;
+ note?: string;
 };
 export type Ingresso = {
   id: string;
