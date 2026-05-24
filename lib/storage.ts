@@ -23,6 +23,8 @@ export type Cliente = {
   tipoAbbonamento: string;
   lezioniPersonalDisponibili: number;
   tipoPersonal: string;
+  recuperiDisponibili: number;
+ scadenzaRecuperi: string;
 };
 export type Ingresso = {
   id: string;

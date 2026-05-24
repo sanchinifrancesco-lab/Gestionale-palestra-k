@@ -153,14 +153,34 @@ export default function PagamentiPage() {
       const ingressiAttuali =
         clienteDaAggiornare.ingressiDisponibili || 0;
 
-      const aggiornato: Cliente = {
-        ...clienteDaAggiornare,
-        scadenzaAbbonamento: formattaDataLocale(nuovaScadenza),
-        attivo: true,
-        tipoAbbonamento: voce,
-        ingressiDisponibili:
-  ingressiAttuali + Number(ingressiDaAggiungere),
-      };
+      const recuperiDalPacchettoPrecedente =
+  clienteDaAggiornare.ingressiDisponibili || 0;
+
+const aggiornato: Cliente = {
+  ...clienteDaAggiornare,
+
+  scadenzaAbbonamento:
+    formattaDataLocale(nuovaScadenza),
+
+  attivo: true,
+
+  tipoAbbonamento: voce,
+
+  // nuovo pacchetto
+  ingressiDisponibili:
+    Number(
+      ingressiDaAggiungere ||
+      pacchetti[voce].ingressi
+    ),
+
+  // ingressi vecchi diventano recuperi
+  recuperiDisponibili:
+    recuperiDalPacchettoPrecedente,
+
+  // recuperi validi fino alla nuova scadenza
+  scadenzaRecuperi:
+    formattaDataLocale(nuovaScadenza),
+};
 
       await salvaClienteSingoloFirebase(aggiornato);
 

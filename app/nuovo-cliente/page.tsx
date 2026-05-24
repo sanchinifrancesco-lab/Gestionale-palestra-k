@@ -42,6 +42,8 @@ export default function NuovoCliente() {
      tipoPersonal: isPersonal
   ? "attivo"
   : "",
+  recuperiDisponibili: 0,
+scadenzaRecuperi: "",
     };
 
     saveClienti([...clienti, nuovoCliente]);

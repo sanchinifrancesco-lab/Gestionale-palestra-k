@@ -35,7 +35,7 @@ setClienti(clientiSistemati);
     caricaClienti();
   }, []);
 
-  function aggiornaCliente(id: string, campo: keyof Cliente, valore: string | boolean) {
+  function aggiornaCliente(id: string, campo: keyof Cliente, valore: string | boolean | number) {
     const aggiornati = clienti.map((cliente) =>
       cliente.id === id ? { ...cliente, [campo]: valore } : cliente
     );
@@ -97,6 +97,8 @@ setClienti(clientiSistemati);
         tipoAbbonamento:"",
         lezioniPersonalDisponibili: 0,
         tipoPersonal: "",
+        recuperiDisponibili: 0,
+        scadenzaRecuperi: "",
       };
       
     });
@@ -166,6 +168,12 @@ async function registraIngressoManuale(cliente: Cliente
   return (
     <main className="min-h-screen bg-gray-100 p-8">
       <div className="flex justify-between items-center mb-8">
+        <Link
+  href="/"
+  className="underline text-sm"
+>
+  ← Torna alla dashboard
+</Link>
         <h1 className="text-4xl font-bold">Clienti</h1>
 
         <div className="flex gap-3">
@@ -237,6 +245,102 @@ async function registraIngressoManuale(cliente: Cliente
                         Scadenza certificato
                         <input type="date" className="w-full border p-3 rounded mt-1" value={cliente.scadenzaCertificato} onChange={(e) => aggiornaCliente(cliente.id, "scadenzaCertificato", e.target.value)} />
                       </label>
+                     <div className="mt-4">
+  <label className="block mb-1">
+    Ingressi disponibili
+  </label>
+
+  <input
+    type="number"
+    className="w-full border p-3 rounded"
+    value={cliente.ingressiDisponibili || 0}
+    onChange={(e) =>
+      aggiornaCliente(
+        cliente.id,
+        "ingressiDisponibili",
+        Number(e.target.value)
+      )
+    }
+  />
+</div>
+
+<div className="mt-4">
+  <label className="block mb-1">
+    Recuperi disponibili
+  </label>
+
+  <input
+    type="number"
+    className="w-full border p-3 rounded"
+    value={cliente.recuperiDisponibili || 0}
+    onChange={(e) =>
+      aggiornaCliente(
+        cliente.id,
+        "recuperiDisponibili",
+        Number(e.target.value)
+      )
+    }
+  />
+</div>
+
+<div className="mt-4">
+  <label className="block mb-1">
+    Scadenza recuperi
+  </label>
+
+  <input
+    type="date"
+    className="w-full border p-3 rounded"
+    value={cliente.scadenzaRecuperi || ""}
+    onChange={(e) =>
+      aggiornaCliente(
+        cliente.id,
+        "scadenzaRecuperi",
+        e.target.value
+      )
+    }
+  />
+</div>
+
+<div className="mt-4">
+  <label className="block mb-1">
+    PT disponibili
+  </label>
+
+  <input
+    type="number"
+    className="w-full border p-3 rounded"
+    value={
+      cliente.lezioniPersonalDisponibili || 0
+    }
+    onChange={(e) =>
+      aggiornaCliente(
+        cliente.id,
+        "lezioniPersonalDisponibili",
+        Number(e.target.value)
+      )
+    }
+  />
+</div>
+
+<div className="mt-4">
+  <label className="block mb-1">
+    Tipo abbonamento
+  </label>
+
+  <input
+    className="w-full border p-3 rounded"
+    value={cliente.tipoAbbonamento || ""}
+    onChange={(e) =>
+      aggiornaCliente(
+        cliente.id,
+        "tipoAbbonamento",
+        e.target.value
+      )
+    }
+  />
+</div>
+                      
 
                       <button onClick={salvaModifica} className="bg-green-600 text-white px-5 py-3 rounded-xl">
                         Salva modifiche
@@ -254,7 +358,22 @@ async function registraIngressoManuale(cliente: Cliente
 🎫 Ingressi:
 {cliente.ingressiDisponibili}
 </p>
+<p>
+🔁 Recuperi:
+{" "}
+{cliente.recuperiDisponibili || 0}
+</p>
 
+<p>
+⏳ Scadenza recuperi:
+{" "}
+{cliente.scadenzaRecuperi || "-"}
+</p>
+{(cliente.recuperiDisponibili || 0) > 0 && (
+  <p className="text-blue-600 font-semibold">
+    Recuperi disponibili fino al {cliente.scadenzaRecuperi}
+  </p>
+)}
 <p>
 💳 Tipo:
 {cliente.tipoAbbonamento}
@@ -274,6 +393,12 @@ async function registraIngressoManuale(cliente: Cliente
                       <button onClick={() => setClienteInModifica(cliente.id)} className="bg-black text-white px-5 py-3 rounded-xl mt-3">
                         Modifica
                       </button> 
+                      <Link
+  href={`/clienti/${cliente.id}`}
+  className="bg-gray-700 text-white px-4 py-2 rounded-xl inline-block ml-2"
+>
+  Scheda
+</Link>
                       <button
   onClick={() =>
     registraIngressoManuale(cliente)
