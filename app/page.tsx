@@ -76,6 +76,15 @@ export default function Home() {
       c.gruppo?.trim().toLowerCase().includes("personal") ||
       (c.lezioniPersonalDisponibili || 0) > 0
   ).length;
+  const gruppiClienti = clienti.reduce((acc, cliente) => {
+  const gruppo =
+    cliente.gruppo?.trim() || "Senza gruppo";
+
+  acc[gruppo] =
+    (acc[gruppo] || 0) + 1;
+
+  return acc;
+}, {} as Record<string, number>);
 
   const ultimiPagamenti = [...pagamenti]
     .sort((a, b) => b.data.localeCompare(a.data))
@@ -104,15 +113,38 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card title="Clienti attivi" value={clientiAttivi} />
-        <Card title="Clienti scaduti" value={clientiScaduti} warning />
-        <Card title="Ingressi oggi" value={ingressiOggi} />
-        <Card title="Incasso mese" value={`€ ${incassoMese}`} />
-        <Card title="Ingressi mese" value={ingressiMese} />
-        <Card title="Incasso anno" value={`€ ${incassoAnno}`} />
-        <Card title="Certificati scaduti" value={certificatiScaduti} warning />
-        <Card title="Clienti Personal" value={clientiPersonal} />
-      </div>
+  <Link href="/clienti">
+    <Card title="Clienti attivi" value={clientiAttivi} />
+  </Link>
+
+  <Link href="/non-rinnovati">
+    <Card title="Clienti scaduti" value={clientiScaduti} warning />
+  </Link>
+
+  <Link href="/ingressi">
+    <Card title="Ingressi oggi" value={ingressiOggi} />
+  </Link>
+
+  <Link href="/pagamenti">
+    <Card title="Incasso mese" value={`€ ${incassoMese}`} />
+  </Link>
+
+  <Link href="/ingressi">
+    <Card title="Ingressi mese" value={ingressiMese} />
+  </Link>
+
+  <Link href="/pagamenti">
+    <Card title="Incasso anno" value={`€ ${incassoAnno}`} />
+  </Link>
+
+  <Link href="/scadenze">
+    <Card title="Certificati scaduti" value={certificatiScaduti} warning />
+  </Link>
+
+  <Link href="/personal">
+    <Card title="Clienti Personal" value={clientiPersonal} />
+  </Link>
+</div>
 
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-10">
         <Menu href="/clienti" label="Clienti" />
@@ -126,29 +158,30 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <section className="bg-white rounded-2xl p-6 shadow">
-          <h2 className="text-2xl font-bold mb-4">
-            Pochi ingressi rimasti
-          </h2>
+  <h2 className="text-2xl font-bold mb-4">
+    Gruppi / Orari
+  </h2>
 
-          {pochiIngressi.length === 0 ? (
-            <p className="text-gray-600">
-              Nessun cliente con pochi ingressi.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {pochiIngressi.slice(0, 8).map((cliente) => (
-                <div key={cliente.id} className="border rounded-xl p-3">
-                  <strong>
-                    {cliente.cognome} {cliente.nome}
-                  </strong>
-                  <p className="text-sm">
-                    Ingressi rimasti: {cliente.ingressiDisponibili}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+  {Object.keys(gruppiClienti).length === 0 ? (
+    <p className="text-gray-600">
+      Nessun gruppo registrato.
+    </p>
+  ) : (
+    <div className="space-y-3">
+      {Object.entries(gruppiClienti)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([gruppo, totale]) => (
+          <div
+            key={gruppo}
+            className="border rounded-xl p-3 flex justify-between"
+          >
+            <strong>{gruppo}</strong>
+            <span>{totale} clienti</span>
+          </div>
+        ))}
+    </div>
+  )}
+</section>
 
         <section className="bg-white rounded-2xl p-6 shadow">
           <h2 className="text-2xl font-bold mb-4">
