@@ -7,10 +7,7 @@ import {
   Ingresso,
   getClientiFirebase,
   getIngressiFirebase,
-   salvaClienteSingoloFirebase,
-  eliminaClienteFirebase,
-  salvaIngressoSingoloFirebase,
-  saveClienti,
+  eliminaIngressoFirebase,
 } from "../../lib/storage";
 
 export default function IngressiPage() {
@@ -23,15 +20,25 @@ export default function IngressiPage() {
 
   useEffect(() => {
     async function caricaDati() {
-      const clientiFirebase = await getClientiFirebase();
-      const ingressiFirebase = await getIngressiFirebase();
-
-      setClienti(clientiFirebase as Cliente[]);
-      setIngressi(ingressiFirebase as Ingresso[]);
+      setClienti((await getClientiFirebase()) as Cliente[]);
+      setIngressi((await getIngressiFirebase()) as Ingresso[]);
     }
 
     caricaDati();
   }, []);
+
+  async function eliminaIngresso(ingressoId: string) {
+    const conferma = confirm("Eliminare questo ingresso?");
+    if (!conferma) return;
+
+    await eliminaIngressoFirebase(ingressoId);
+
+    setIngressi(
+      ingressi.filter((ingresso) => ingresso.id !== ingressoId)
+    );
+
+    alert("Ingresso eliminato");
+  }
 
   const ingressiDelMese = ingressi.filter((ingresso) =>
     ingresso.data.startsWith(mese)
@@ -47,43 +54,11 @@ export default function IngressiPage() {
       const ingressiCliente = ingressiDelMese.filter(
         (ingresso) => ingresso.clienteId === cliente.id
       );
-async function registraIngressoManuale(cliente: Cliente) {
-  if ((cliente.ingressiDisponibili || 0) <= 0) {
-    alert("Ingressi esauriti");
-    return;
-  }
 
-  const nuovoIngresso: Ingresso = {
-    id: "ingresso_" + Date.now(),
-    clienteId: cliente.id,
-    data: new Date().toISOString(),
-    esito: "OK MANUALE",
-  };
-
-  await salvaIngressoSingoloFirebase(nuovoIngresso);
-
-  const clienteAggiornato: Cliente = {
-    ...cliente,
-    ingressiDisponibili: (cliente.ingressiDisponibili || 0) - 1,
-  };
-
-  await salvaClienteSingoloFirebase(clienteAggiornato);
-
-  const aggiornati = clienti.map((c) =>
-    c.id === cliente.id ? clienteAggiornato : c
-  );
-
-  setClienti(aggiornati);
-  saveClienti(aggiornati);
-
-  alert("Ingresso manuale registrato");
-}
       return {
         cliente,
         totale: ingressiCliente.length,
-        date: ingressiCliente.map((ingresso) =>
-          new Date(ingresso.data).toLocaleString("it-IT")
-        ),
+        ingressi: ingressiCliente,
       };
     })
     .filter((riga) => riga.totale > 0)
@@ -178,11 +153,30 @@ async function registraIngressoManuale(cliente: Cliente) {
                   Dettaglio ingressi:
                 </p>
 
-                <ul className="list-disc pl-5 space-y-1">
-                  {riga.date.map((data, index) => (
-                    <li key={index}>{data}</li>
+                <div className="space-y-2">
+                  {riga.ingressi.map((ingresso) => (
+                    <div
+                      key={ingresso.id}
+                      className="flex justify-between items-center border rounded-xl p-3"
+                    >
+                      <div>
+                        <p>
+                          {new Date(ingresso.data).toLocaleString("it-IT")}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {ingresso.esito}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => eliminaIngresso(ingresso.id)}
+                        className="bg-red-600 text-white px-3 py-2 rounded-xl text-sm"
+                      >
+                        Elimina
+                      </button>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             </div>
           ))

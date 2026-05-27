@@ -216,3 +216,10 @@ export async function salvaLezionePersonalFirebase(
     lezione
   );
 }
+export async function eliminaIngressoFirebase(
+  ingressoId: string
+) {
+  await deleteDoc(
+    doc(db, "ingressi", ingressoId)
+  );
+}
