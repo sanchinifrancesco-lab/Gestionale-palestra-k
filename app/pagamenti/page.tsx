@@ -41,6 +41,8 @@ const pacchetti = {
 type VocePagamento = keyof typeof pacchetti;
 
 export default function PagamentiPage() {
+  const [ricercaCliente, setRicercaCliente] =
+  useState("");
   const [clienti, setClienti] = useState<Cliente[]>([]);
   const [pagamenti, setPagamenti] = useState<Pagamento[]>([]);
   const [clienteId, setClienteId] = useState("");
@@ -228,7 +230,14 @@ const aggiornato: Cliente = {
     (sum, p) => sum + p.importo,
     0
   );
-
+const clientiFiltrati =
+  clienti.filter((cliente) =>
+    `${cliente.cognome} ${cliente.nome}`
+      .toLowerCase()
+      .includes(
+        ricercaCliente.toLowerCase()
+      )
+  );
   return (
     <main className="min-h-screen bg-gray-100 p-8">
       <Link href="/" className="underline text-sm">
@@ -243,6 +252,17 @@ const aggiornato: Cliente = {
         onSubmit={registraPagamento}
         className="bg-white rounded-2xl p-6 shadow max-w-2xl space-y-4 mb-8"
       >
+      <input
+  type="text"
+  placeholder="Cerca cliente..."
+  value={ricercaCliente}
+  onChange={(e) =>
+    setRicercaCliente(
+      e.target.value
+    )
+  }
+  className="w-full border p-3 rounded mb-3"
+/>
         <select
           className="w-full border p-3 rounded"
           value={clienteId}
@@ -250,7 +270,7 @@ const aggiornato: Cliente = {
         >
           <option value="">Seleziona cliente</option>
 
-          {clienti.map((cliente, index) => (
+          {clientiFiltrati.map((cliente, index) => (
             <option
               key={`${cliente.id}-${index}`}
               value={cliente.id}
