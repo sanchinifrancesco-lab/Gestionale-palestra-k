@@ -36,6 +36,10 @@ const pacchetti = {
     importo: 0,
     ingressi: 0,
   },
+  "Iscrizione iniziale": {
+  importo: 0,
+  ingressi: 0,
+},
 };
 
 type VocePagamento = keyof typeof pacchetti;
@@ -157,12 +161,26 @@ export default function PagamentiPage() {
 
       const recuperiDalPacchettoPrecedente =
   clienteDaAggiornare.ingressiDisponibili || 0;
+let scadenzaFinale =
+formattaDataLocale(nuovaScadenza);
 
+if (voce === "Iscrizione iniziale") {
+
+  const oggi = new Date();
+
+  const anno =
+    oggi.getMonth() <= 6
+      ? oggi.getFullYear()
+      : oggi.getFullYear() + 1;
+
+  scadenzaFinale =
+    `${anno}-07-31`;
+}
 const aggiornato: Cliente = {
   ...clienteDaAggiornare,
 
   scadenzaAbbonamento:
-    formattaDataLocale(nuovaScadenza),
+    scadenzaFinale,
 
   attivo: true,
 
@@ -302,30 +320,34 @@ const clientiFiltrati =
           <option value="Personalizzato">
   Personalizzato
 </option>
+<option value="Iscrizione iniziale">
+  Iscrizione iniziale
+</option>
         </select>
 
-        {voce === "Personalizzato" && (
-  <>
-    <input
-      className="w-full border p-3 rounded"
-      placeholder="Importo"
-      value={importo}
-      onChange={(e) =>
-        setImporto(e.target.value)
-      }
-    />
+        {(voce === "Personalizzato" ||
+  voce === "Iscrizione iniziale") && (
+  <input
+    className="w-full border p-3 rounded"
+    placeholder="Importo"
+    value={importo}
+    onChange={(e) =>
+      setImporto(e.target.value)
+    }
+  />
+)}
 
-    <input
-      className="w-full border p-3 rounded"
-      placeholder="Ingressi da aggiungere"
-      value={ingressiDaAggiungere}
-      onChange={(e) =>
-        setIngressiDaAggiungere(
-          e.target.value
-         )
-      }
-    />
-  </>
+{voce === "Personalizzato" && (
+  <input
+    className="w-full border p-3 rounded"
+    placeholder="Ingressi da aggiungere"
+    value={ingressiDaAggiungere}
+    onChange={(e) =>
+      setIngressiDaAggiungere(
+        e.target.value
+      )
+    }
+  />
 )}
         <select
           className="w-full border p-3 rounded"
