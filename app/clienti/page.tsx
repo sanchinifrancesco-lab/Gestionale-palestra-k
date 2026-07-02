@@ -12,6 +12,7 @@ import {
   eliminaClienteFirebase,
   salvaIngressoSingoloFirebase,
 } from "../../lib/storage";
+import { clienteCorrispondeAllaRicerca } from "../../lib/ricerca";
 
 export default function ClientiPage() {
   const [clienti, setClienti] = useState<Cliente[]>([]);
@@ -51,24 +52,6 @@ setClienti(clientiSistemati);
   }
 
   function salvaModifica(){
-    async function eliminaCliente(clienteId: string) {
-  const conferma = confirm(
-    "Sei sicuro di voler eliminare questo cliente?"
-  );
-
-  if (!conferma) return;
-
-  await eliminaClienteFirebase(clienteId);
-
-  const aggiornati = clienti.filter(
-    (cliente) => cliente.id !== clienteId
-  );
-
-  setClienti(aggiornati);
-  saveClienti(aggiornati);
-
-  alert("Cliente eliminato");
-}
     setClienteInModifica(null);
     alert("Cliente aggiornato");
   }
@@ -121,7 +104,7 @@ async function registraIngressoManuale(cliente: Cliente
   }
 
   const nuovoIngresso: Ingresso = {
-    id: "ingresso_" + Date.now(),
+    id: "ingresso_" + new Date().getTime(),
 
     clienteId: cliente.id,
 
@@ -158,9 +141,7 @@ async function registraIngressoManuale(cliente: Cliente
   alert("Ingresso manuale registrato");
 }
   const clientiFiltrati = clienti.filter((cliente) =>
-    `${cliente.nome} ${cliente.cognome} ${cliente.telefono}`
-      .toLowerCase()
-      .includes(ricerca.toLowerCase())
+    clienteCorrispondeAllaRicerca(cliente, ricerca)
   );
 
   const oggi = new Date().toISOString().slice(0, 10);

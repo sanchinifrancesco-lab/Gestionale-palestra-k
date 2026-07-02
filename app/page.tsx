@@ -59,12 +59,6 @@ export default function Home() {
     (c) => c.scadenzaCertificato && c.scadenzaCertificato < oggi
   ).length;
 
-  const pochiIngressi = clienti.filter(
-    (c) =>
-      (c.ingressiDisponibili || 0) > 0 &&
-      (c.ingressiDisponibili || 0) <= 2
-  );
-
   const senzaIngressi = clienti.filter(
     (c) =>
       c.scadenzaAbbonamento >= oggi &&

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Html5QrcodeScanner } from "html5-qrcode";
 
@@ -40,7 +40,7 @@ export default function ScannerPage() {
     caricaDati();
   }, []);
 
-  async function registraIngresso(clienteId: string) {
+  const registraIngresso = useCallback(async (clienteId: string) => {
     const cliente = clienti.find((c) => c.id === clienteId);
 
     if (!cliente) {
@@ -136,7 +136,7 @@ export default function ScannerPage() {
     setUltimoCliente(`${cliente.nome} ${cliente.cognome}`);
     setMessaggio(nuovoIngresso.esito);
     playSound("ok");
-  }
+  }, [clienti, ingressi]);
 
   useEffect(() => {
     if (scannerRef.current) return;
@@ -164,7 +164,7 @@ export default function ScannerPage() {
       scannerRef.current?.clear().catch(() => {});
       scannerRef.current = null;
     };
-  }, [clienti, ingressi]);
+  }, [registraIngresso]);
 
   const coloreMessaggio =
     messaggio === "OK" || messaggio === "OK RECUPERO"

@@ -13,6 +13,7 @@ import {
   salvaClienteSingoloFirebase,
   eliminaPagamentoFirebase,
 } from "../../lib/storage";
+import { clienteCorrispondeAllaRicerca } from "../../lib/ricerca";
 
 const pacchetti = {
   Mensile: { importo: 65, ingressi: 8 },
@@ -40,9 +41,33 @@ const pacchetti = {
   importo: 0,
   ingressi: 0,
 },
+  Test: { importo: 0, ingressi: 0 },
+  Minitest: { importo: 0, ingressi: 0 },
+  "Lezione individuale": { importo: 0, ingressi: 0 },
+  "Pacchetto personal": { importo: 0, ingressi: 0 },
+  "Pacchetto minigruppo": { importo: 0, ingressi: 0 },
 };
 
 type VocePagamento = keyof typeof pacchetti;
+
+const vociSoloPagamento = new Set<VocePagamento>([
+  "Test",
+  "Minitest",
+  "Lezione individuale",
+  "Pacchetto personal",
+  "Pacchetto minigruppo",
+]);
+
+type VoceAggiuntiva = {
+  id: string;
+  descrizione: string;
+  importo: string;
+};
+
+const vociPredefinite = [
+  "Marca da bollo",
+  "Iscrizione",
+];
 
 export default function PagamentiPage() {
   const [ricercaCliente, setRicercaCliente] =
@@ -54,6 +79,7 @@ export default function PagamentiPage() {
   const [importo, setImporto] = useState("65");
   const [ingressiDaAggiungere, setIngressiDaAggiungere] = useState("8");
   const [metodo, setMetodo] = useState("contanti");
+  const [vociAggiuntive, setVociAggiuntive] = useState<VoceAggiuntiva[]>([]);
 
   useEffect(() => {
     async function caricaDati() {
@@ -123,20 +149,71 @@ export default function PagamentiPage() {
   setIngressiDaAggiungere(String(pacchetti[nuovaVoce].ingressi));
 }
 
+  function aggiungiVoce(descrizione = "") {
+    setVociAggiuntive((voci) => [
+      ...voci,
+      {
+        id: `voce_${new Date().getTime()}_${voci.length}`,
+        descrizione,
+        importo: "",
+      },
+    ]);
+  }
+
+  function aggiornaVoce(
+    id: string,
+    campo: "descrizione" | "importo",
+    valore: string
+  ) {
+    setVociAggiuntive((voci) =>
+      voci.map((riga) =>
+        riga.id === id ? { ...riga, [campo]: valore } : riga
+      )
+    );
+  }
+
+  function rimuoviVoce(id: string) {
+    setVociAggiuntive((voci) => voci.filter((riga) => riga.id !== id));
+  }
+
   async function registraPagamento(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!clienteId || !importo) {
+    const importoPrincipale = Number(importo);
+    const vociIncomplete = vociAggiuntive.some(
+      (riga) => !riga.descrizione.trim() || !riga.importo || Number(riga.importo) < 0
+    );
+
+    if (!clienteId || !importo || importoPrincipale < 0) {
       alert("Seleziona cliente e inserisci importo");
       return;
     }
 
+    if (vociIncomplete) {
+      alert("Completa descrizione e importo di tutte le voci aggiuntive");
+      return;
+    }
+
+    const vociRegistrate = [
+      { descrizione: voce, importo: importoPrincipale },
+      ...vociAggiuntive.map((riga) => ({
+        descrizione: riga.descrizione.trim(),
+        importo: Number(riga.importo),
+      })),
+    ];
+
+    const totaleOperazione = vociRegistrate.reduce(
+      (totale, riga) => totale + riga.importo,
+      0
+    );
+
     const nuovoPagamento: Pagamento = {
       id: "pagamento_" + Date.now(),
       clienteId,
-      importo: Number(importo),
-      metodo: `${metodo} - ${voce}`,
+      importo: totaleOperazione,
+      metodo,
       data: formattaDataLocale(new Date()),
+      voci: vociRegistrate,
     };
 
     const nuoviPagamenti = [...pagamenti, nuovoPagamento];
@@ -150,14 +227,11 @@ export default function PagamentiPage() {
       (cliente) => cliente.id === clienteId
     );
 
-    if (clienteDaAggiornare) {
+    if (clienteDaAggiornare && !vociSoloPagamento.has(voce)) {
       const nuovaScadenza = calcolaScadenza(
         voce,
         clienteDaAggiornare.scadenzaAbbonamento
       );
-
-      const ingressiAttuali =
-        clienteDaAggiornare.ingressiDisponibili || 0;
 
       const recuperiDalPacchettoPrecedente =
   clienteDaAggiornare.ingressiDisponibili || 0;
@@ -211,12 +285,15 @@ const aggiornato: Cliente = {
       );
     }
 
-    alert(`Pagamento ${voce} registrato. Abbonamento aggiornato.`);
+    alert(`Pagamento registrato: € ${totaleOperazione.toFixed(2)}`);
 
+    setRicercaCliente("");
     setClienteId("");
     setVoce("Mensile");
-  setIngressiDaAggiungere("8");
+    setImporto("65");
+    setIngressiDaAggiungere("8");
     setMetodo("contanti");
+    setVociAggiuntive([]);
   }
 
   async function eliminaPagamento(pagamentoId: string) {
@@ -248,14 +325,20 @@ const aggiornato: Cliente = {
     (sum, p) => sum + p.importo,
     0
   );
-const clientiFiltrati =
-  clienti.filter((cliente) =>
-    `${cliente.cognome} ${cliente.nome}`
-      .toLowerCase()
-      .includes(
-        ricercaCliente.toLowerCase()
-      )
+  const clientiFiltrati = clienti.filter((cliente) =>
+    clienteCorrispondeAllaRicerca(cliente, ricercaCliente)
   );
+
+  const totaleOperazione = [
+    Number(importo) || 0,
+    ...vociAggiuntive.map((riga) => Number(riga.importo) || 0),
+  ].reduce((somma, valore) => somma + valore, 0);
+
+  const mostraImportoLibero =
+    voce === "Personalizzato" ||
+    voce === "Iscrizione iniziale" ||
+    vociSoloPagamento.has(voce);
+
   return (
     <main className="min-h-screen bg-gray-100 p-8">
       <Link href="/" className="underline text-sm">
@@ -317,6 +400,11 @@ const clientiFiltrati =
           <option value="Annuale">
             Annuale - 540€ / 999 ingressi
           </option>
+          <option value="Test">Test</option>
+          <option value="Minitest">Minitest</option>
+          <option value="Lezione individuale">Lezione individuale</option>
+          <option value="Pacchetto personal">Pacchetto personal</option>
+          <option value="Pacchetto minigruppo">Pacchetto minigruppo</option>
           <option value="Personalizzato">
   Personalizzato
 </option>
@@ -325,8 +413,7 @@ const clientiFiltrati =
 </option>
         </select>
 
-        {(voce === "Personalizzato" ||
-  voce === "Iscrizione iniziale") && (
+        {mostraImportoLibero && (
   <input
     className="w-full border p-3 rounded"
     placeholder="Importo"
@@ -349,6 +436,83 @@ const clientiFiltrati =
     }
   />
 )}
+
+        <div className="border-t pt-4 space-y-3">
+          <div>
+            <div>
+              <h2 className="font-semibold">Voci aggiuntive</h2>
+              <p className="text-sm text-gray-500">
+                Seleziona una voce pronta oppure inseriscine una libera.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 mt-3">
+              <select
+                aria-label="Aggiungi voce predefinita"
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) aggiungiVoce(e.target.value);
+                }}
+                className="border p-3 rounded"
+              >
+                <option value="">Aggiungi voce predefinita...</option>
+                {vociPredefinite.map((descrizione) => (
+                  <option key={descrizione} value={descrizione}>
+                    {descrizione}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => aggiungiVoce()}
+                className="bg-gray-700 text-white px-4 py-2 rounded-xl"
+              >
+                + Voce libera
+              </button>
+            </div>
+          </div>
+
+          {vociAggiuntive.map((riga) => (
+            <div
+              key={riga.id}
+              className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-2"
+            >
+              <input
+                className="border p-3 rounded"
+                placeholder="Descrizione (es. Marca da bollo)"
+                value={riga.descrizione}
+                onChange={(e) =>
+                  aggiornaVoce(riga.id, "descrizione", e.target.value)
+                }
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className="border p-3 rounded"
+                placeholder="Importo €"
+                value={riga.importo}
+                onChange={(e) =>
+                  aggiornaVoce(riga.id, "importo", e.target.value)
+                }
+              />
+              <button
+                type="button"
+                onClick={() => rimuoviVoce(riga.id)}
+                className="text-red-600 px-3 py-2"
+              >
+                Rimuovi
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-gray-100 rounded-xl p-4 flex justify-between text-lg font-semibold">
+          <span>Totale operazione</span>
+          <span>€ {totaleOperazione.toFixed(2)}</span>
+        </div>
+
         <select
           className="w-full border p-3 rounded"
           value={metodo}
@@ -381,8 +545,18 @@ const clientiFiltrati =
             <strong>{nomeCliente(pagamento.clienteId)}</strong>
 
             <p>
-              € {pagamento.importo} — {pagamento.metodo}
+              € {pagamento.importo.toFixed(2)} — {pagamento.metodo}
             </p>
+
+            {pagamento.voci && pagamento.voci.length > 0 && (
+              <ul className="text-sm text-gray-600 mt-2 space-y-1">
+                {pagamento.voci.map((riga, index) => (
+                  <li key={`${pagamento.id}-${index}`}>
+                    {riga.descrizione}: € {riga.importo.toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <p className="text-sm text-gray-500">
               {pagamento.data}

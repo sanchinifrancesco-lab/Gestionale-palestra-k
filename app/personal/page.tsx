@@ -151,11 +151,6 @@ export default function PersonalPage() {
 
     return `${cliente.cognome} ${cliente.nome}`;
   }
-const clientiPersonal = clienti.filter(
-  (cliente) =>
-    cliente.tipoPersonal === "attivo" ||
-    (cliente.lezioniPersonalDisponibili || 0) > 0
-);
   return (
     <main className="min-h-screen bg-gray-100 p-8">
 

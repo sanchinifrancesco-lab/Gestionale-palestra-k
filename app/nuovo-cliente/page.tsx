@@ -1,6 +1,7 @@
-"use client";"use client";
+"use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   getClienti,
@@ -54,9 +55,9 @@ scadenzaRecuperi: "",
 
   return (
     <main className="min-h-screen bg-gray-100 p-8">
-      <a href="/" className="underline text-sm">
+      <Link href="/" className="underline text-sm">
         ← Torna alla dashboard
-      </a>
+      </Link>
 
       <h1 className="text-4xl font-bold my-8">
         Nuovo Cliente

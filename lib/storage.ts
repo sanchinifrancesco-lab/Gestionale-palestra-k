@@ -47,6 +47,10 @@ export type Pagamento = {
   importo: number;
   metodo: string;
   data: string;
+  voci?: {
+    descrizione: string;
+    importo: number;
+  }[];
 };
 
 

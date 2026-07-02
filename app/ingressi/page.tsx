@@ -9,6 +9,7 @@ import {
   getIngressiFirebase,
   eliminaIngressoFirebase,
 } from "../../lib/storage";
+import { clienteCorrispondeAllaRicerca } from "../../lib/ricerca";
 
 export default function IngressiPage() {
   const [clienti, setClienti] = useState<Cliente[]>([]);
@@ -46,9 +47,7 @@ export default function IngressiPage() {
 
   const reportClienti = clienti
     .filter((cliente) =>
-      `${cliente.nome} ${cliente.cognome} ${cliente.telefono}`
-        .toLowerCase()
-        .includes(ricerca.toLowerCase())
+      clienteCorrispondeAllaRicerca(cliente, ricerca)
     )
     .map((cliente) => {
       const ingressiCliente = ingressiDelMese.filter(
